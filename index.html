@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playboy Club // OBS Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Pacifico&family=Quicksand:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Tokyo+Zoo&family=Rubik+Mono+One&display=swap');
+
+        :root {
+            --neon-pink: #ff69b4;
+            --neon-purple: #da70d6;
+            --neon-blue: #87ceeb;
+            --mint: #98fb98;
+            --hot-pink: #ff1493;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #ffeef8 0%, #f8e1f4 25%, #e1f4f8 50%, #f0e6ff 75%, #ffeef8 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .y2k-window {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff69b4;
+            box-shadow: 
+                0 0 0 2px #fff,
+                0 0 0 4px #ff69b4,
+                0 10px 30px rgba(255, 105, 180, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .y2k-window::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 70%
+            );
+            animation: shine 3s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .title-bar {
+            background: linear-gradient(90deg, #ff69b4, #da70d6, #87ceeb);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ff1493;
+        }
+
+        .title-text {
+            font-family: 'Zen Tokyo Zoo', cursive;
+            color: white;
+            text-shadow: 2px 2px 0px #ff1493;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+            border: 1px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .window-btn:hover { transform: scale(1.2); }
+
+        .btn-close { background: #ff5f57; }
+        .btn-min { background: #ffbd2e; }
+        .btn-max { background: #28c840; }
+
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+        .retro-font { font-family: 'VT323', monospace; }
+        .cute-font { font-family: 'Pacifico', cursive; }
+
+        .bubble-text {
+            font-family: 'Rubik Mono One', sans-serif;
+            background: linear-gradient(180deg, #ff69b4 0%, #da70d6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(3px 3px 0px rgba(255, 20, 147, 0.3));
+            letter-spacing: -1px;
+        }
+
+        .checkered-bg {
+            background-image: 
+                linear-gradient(45deg, #ffcce6 25%, transparent 25%),
+                linear-gradient(-45deg, #ffcce6 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ffcce6 75%),
+                linear-gradient(-45deg, transparent 75%, #ffcce6 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 105, 180, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.1);
+        }
+
+        .neon-glow {
+            box-shadow: 
+                0 0 5px #ff69b4,
+                0 0 10px #ff69b4,
+                0 0 20px #ff69b4,
+                0 0 40px #da70d6;
+        }
+
+        .cute-button {
+            background: linear-gradient(135deg, #ff9ecd 0%, #ff69b4 100%);
+            border: 2px solid #fff;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 
+                0 4px 15px rgba(255, 105, 180, 0.4),
+                inset 0 -2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cute-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 
+                0 6px 20px rgba(255, 105, 180, 0.6),
+                inset 0 -2px 5px rgba(0,0,0,0.1);
+        }
+
+        .cute-button:active { transform: translateY(0) scale(0.98); }
+
+        .cute-button::after {
+            content: '✨';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .cute-button:hover::after {
+            opacity: 1;
+            top: 5px;
+            right: 5px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,240,245,0.9) 100%);
+            border: 2px solid #ffb6c1;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card:hover::before { left: 100%; }
+
+        .heart-icon {
+            color: #ff1493;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.1); }
+            20%, 40% { transform: scale(1); }
+        }
+
+        .floating { animation: float 6s ease-in-out infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+
+        .glitch-text {
+            position: relative;
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 2px); }
+            94% { transform: translate(2px, -2px); }
+            96% { transform: translate(-2px, -2px); }
+            98% { transform: translate(2px, 2px); }
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .retro-grid {
+            background-image: 
+                linear-gradient(rgba(255, 105, 180, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 105, 180, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .scramble-text {
+            font-family: 'VT323', monospace;
+            color: #ff1493;
+        }
+
+        .bunny-icon {
+            filter: drop-shadow(2px 2px 0px rgba(255, 20, 147, 0.3));
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffeef8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ff69b4, #da70d6);
+            border-radius: 10px;
+            border: 2px solid #fff;
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.02) 50%,
+                rgba(0,0,0,0.02)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .holographic {
+            background: linear-gradient(
+                135deg,
+                rgba(255,0,255,0.1) 0%,
+                rgba(0,255,255,0.1) 25%,
+                rgba(255,255,0,0.1) 50%,
+                rgba(255,0,255,0.1) 75%,
+                rgba(0,255,255,0.1) 100%
+            );
+            background-size: 400% 400%;
+            animation: holographicShift 8s ease infinite;
+        }
+
+        @keyframes holographicShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 retro-grid">
+    <div class="scanlines"></div>
+    
+    <!-- Header -->
+    <header class="mb-6 y2k-window p-1 holographic">
+        <div class="title-bar rounded-t-lg">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🐰</span>
+                <span class="title-text">PLAYBOY.CLUB // STREAM_DASHBOARD.exe</span>
+            </div>
+            <div class="flex">
+                <div class="window-btn btn-min"></div>
+                <div class="window-btn btn-max"></div>
+                <div class="window-btn btn-close"></div>
+            </div>
+        </div>
+        <div class="p-4 flex justify-between items-center">
+            <div>
+                <h1 class="bubble-text text-4xl mb-1 glitch-text">STREAM CONTROL</h1>
+                <p class="retro-font text-pink-600 text-lg tracking-widest">/// WEBCAM_MODEL_DASHBOARD_V2.0</p>
+            </div>
+            <div class="text-right">
+                <div class="cute-font text-2xl text-pink-500" id="clock">00:00:00</div>
+                <div class="pixel-font text-xs text-purple-600 mt-1">LIVE STATUS: <span class="text-green-500 animate-pulse">● ONLINE</span></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto">
+        
+        <!-- Left Column - Stats & Info -->
+        <div class="lg:col-span-3 space-y-4">
+            <!-- Profile Card -->
+            <div class="y2k-window p-4 checkered-bg">
+                <div class="glass-panel p-4 text-center">
+                    <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-pink-300 to-purple-400 p-1 mb-3 floating">
+                        <div class="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl border-4 border-pink-200">
+                            🎀
+                        </div>
+                    </div>
+                    <h3 class="bubble-text text-xl mb-1">Bunny_Name</h3>
+                    <p class="retro-font text-pink-600 text-sm">@playboy_handle</p>
+                    <div class="mt-3 flex justify-center gap-2">
+                        <span class="px-3 py-1 bg-pink-200 rounded-full text-xs font-bold text-pink-700 border border-pink-300">⭐ Top 5%</span>
+                        <span class="px-3 py-1 bg-purple-200 rounded-full text-xs font-bold text-purple-700 border border-purple-300">💎 VIP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Stats -->
+            <div class="y2k-window p-4">
+                <h4 class="pixel-font text-sm text-pink-600 mb-3 border-b-2 border-pink-200 pb-2">LIVE_STATS.dat</h4>
+                <div class="space-y-3">
+                    <div class="stat-card p-3 flex justify-between items-center">
+                        <span class="retro-font text-gray-600">Viewers</span>
+                        <span class="bubble-text text-2xl" id="viewerCount">1,247</span>
+                    </div>
+                    <div class="stat-card p-3 flex justify-between items-center">
+                        <span class="retro-font text-gray-600">Tokens</span>
+                        <span class="bubble-text text-2xl text-purple-600" id="tokenCount">∞</span>
+                    </div>
+                    <div class="stat-card p-3 flex justify-between items-center">
+                        <span class="retro-font text-gray-600">Uptime</span>
+                        <span class="bubble-text text-xl text-blue-500" id="uptime">02:34:12</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="y2k-window p-4">
+                <h4 class="pixel-font text-sm text-pink-600 mb-3">QUICK_ACTIONS.exe</h4>
+                <div class="space-y-2">
+                    <button onclick="triggerEffect('love')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2">
+                        <span>💕</span> Send Love
+                    </button>
+                    <button onclick="triggerEffect('dance')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-purple-400 to-pink-400">
+                        <span>💃</span> Dance Mode
+                    </button>
+                    <button onclick="triggerEffect('silence')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-400">
+                        <span>🔇</span> Silence Trolls
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Column - Main Preview & Controls -->
+        <div class="lg:col-span-6 space-y-4">
+            <!-- Video Preview -->
+            <div class="y2k-window p-1">
+                <div class="title-bar">
+                    <span class="title-text text-sm">CAM_PREVIEW.window</span>
+                    <div class="flex gap-1">
+                        <span class="text-xs bg-red-500 text-white px-2 rounded animate-pulse">REC</span>
+                    </div>
+                </div>
+                <div class="relative bg-black rounded-b-lg overflow-hidden" style="aspect-ratio: 16/9;">
+                    <div class="absolute inset-0 bg-gradient-to-br from-pink-900/20 to-purple-900/20 z-10"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center z-0">
+                            <div class="text-6xl mb-4 animate-bounce">📹</div>
+                            <p class="retro-font text-pink-300 text-xl">CAMERA_FEED_ACTIVE</p>
+                            <p class="text-pink-400/60 text-sm mt-2">Resolution: 1080p60 | Bitrate: 6000kbps</p>
+                        </div>
+                    </div>
+                    <!-- Overlay Elements -->
+                    <div class="absolute top-4 left-4 z-20 bg-black/50 backdrop-blur px-3 py-1 rounded-full border border-pink-500/50">
+                        <span class="text-pink-400 text-xs retro-font">ISO: AUTO | EXP: +0.3</span>
+                    </div>
+                    <div class="absolute bottom-4 right-4 z-20">
+                        <div class="bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 rounded-lg border-2 border-white shadow-lg transform rotate-2">
+                            <span class="text-white font-bold text-sm">LIVE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene Switcher -->
+            <div class="y2k-window p-4">
+                <h4 class="pixel-font text-sm text-pink-600 mb-4 flex items-center gap-2">
+                    <span>🎬</span> SCENE_SELECTOR.matrix
+                </h4>
+                <div class="grid grid-cols-4 gap-3">
+                    <button onclick="switchScene('intro')" class="scene-btn group relative aspect-video rounded-xl border-2 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 hover:border-pink-500 transition-all overflow-hidden">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">✨</span>
+                            <span class="text-xs font-bold text-pink-700">INTRO</span>
+                        </div>
+                        <div class="absolute inset-0 bg-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </button>
+                    <button onclick="switchScene('dance')" class="scene-btn group relative aspect-video rounded-xl border-2 border-purple-300 bg-gradient-to-br from-purple-100 to-purple-200 hover:border-purple-500 transition-all overflow-hidden">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">💃</span>
+                            <span class="text-xs font-bold text-purple-700">DANCE</span>
+                        </div>
+                        <div class="absolute inset-0 bg-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </button>
+                    <button onclick="switchScene('close')" class="scene-btn group relative aspect-video rounded-xl border-2 border-blue-300 bg-gradient-to-br from-blue-100 to-blue-200 hover:border-blue-500 transition-all overflow-hidden">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">💋</span>
+                            <span class="text-xs font-bold text-blue-700">CLOSE UP</span>
+                        </div>
+                        <div class="absolute inset-0 bg-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </button>
+                    <button onclick="switchScene('break')" class="scene-btn group relative aspect-video rounded-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-100 to-yellow-200 hover:border-yellow-500 transition-all overflow-hidden">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">☕</span>
+                            <span class="text-xs font-bold text-yellow-700">BREAK</span>
+                        </div>
+                        <div class="absolute inset-0 bg-yellow-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Mixer -->
+            <div class="y2k-window p-4">
+                <h4 class="pixel-font text-sm text-pink-600 mb-4">AUDIO_MIXER.sys</h4>
+                <div class="space-y-4">
+                    <div class="flex items-c
