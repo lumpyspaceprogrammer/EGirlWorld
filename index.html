@@ -865,6 +865,14 @@
             setTimeout(() => toast.classList.remove('show'), duration);
         }
 
+        // Enable Dashboard - Helper function to show the dashboard
+        function enableDashboard() {
+            document.getElementById('setupModal').classList.remove('active');
+            document.getElementById('mainDashboard').style.opacity = '1';
+            document.getElementById('mainDashboard').style.pointerEvents = 'all';
+            document.getElementById('mainDashboard').style.filter = 'none';
+        }
+
         // Initialize Connections
         async function initializeConnections() {
             const obsUrl = document.getElementById('obsUrl').value;
@@ -878,18 +886,12 @@
             if (twitchChannel) connectTwitch(twitchChannel);
             if (slToken) connectStreamlabs(slToken);
 
-            document.getElementById('setupModal').classList.remove('active');
-            document.getElementById('mainDashboard').style.opacity = '1';
-            document.getElementById('mainDashboard').style.pointerEvents = 'all';
-            document.getElementById('mainDashboard').style.filter = 'none';
+            enableDashboard();
         }
 
         // Skip Setup - Allow access to dashboard without connections
         function skipSetup() {
-            document.getElementById('setupModal').classList.remove('active');
-            document.getElementById('mainDashboard').style.opacity = '1';
-            document.getElementById('mainDashboard').style.pointerEvents = 'all';
-            document.getElementById('mainDashboard').style.filter = 'none';
+            enableDashboard();
             showToast('Dashboard loaded in offline mode. Connect services from Settings ⚙️', 3000);
         }
 
