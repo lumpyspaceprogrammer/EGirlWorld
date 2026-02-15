@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Playboy Club // OBS Dashboard</title>
+    <title>Playboy Club // OBS Dashboard Pro + Beauty Filter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Pacifico&family=Quicksand:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.2/dist/obs-ws.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/lib/tmi.min.js"></script>
+    <!-- TensorFlow.js for face detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Zen+Tokyo+Zoo&family=Rubik+Mono+One&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Pacifico&family=Quicksand:wght@300;500;700&family=Zen+Tokyo+Zoo&family=Rubik+Mono+One&display=swap');
 
         :root {
             --neon-pink: #ff69b4;
@@ -152,6 +159,7 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
 
         .cute-button:hover {
@@ -176,6 +184,24 @@
             opacity: 1;
             top: 5px;
             right: 5px;
+        }
+
+        .cute-button.connected {
+            background: linear-gradient(135deg, #98fb98 0%, #32cd32 100%);
+        }
+
+        .cute-button.error {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .cute-button.active {
+            background: linear-gradient(135deg, #ffd700 0%, #ff69b4 100%);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
         }
 
         .stat-card {
@@ -217,65 +243,6 @@
             50% { transform: translateY(-20px) rotate(2deg); }
         }
 
-        .glitch-text {
-            position: relative;
-            animation: glitch 3s infinite;
-        }
-
-        @keyframes glitch {
-            0%, 90%, 100% { transform: translate(0); }
-            92% { transform: translate(-2px, 2px); }
-            94% { transform: translate(2px, -2px); }
-            96% { transform: translate(-2px, -2px); }
-            98% { transform: translate(2px, 2px); }
-        }
-
-        .marquee-container {
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-        }
-
-        .marquee-content {
-            display: inline-block;
-            animation: marquee 20s linear infinite;
-        }
-
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .retro-grid {
-            background-image: 
-                linear-gradient(rgba(255, 105, 180, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 105, 180, 0.1) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-
-        .scramble-text {
-            font-family: 'VT323', monospace;
-            color: #ff1493;
-        }
-
-        .bunny-icon {
-            filter: drop-shadow(2px 2px 0px rgba(255, 20, 147, 0.3));
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 12px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #ffeef8;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, #ff69b4, #da70d6);
-            border-radius: 10px;
-            border: 2px solid #fff;
-        }
-
         .scanlines {
             position: fixed;
             top: 0;
@@ -294,182 +261,1372 @@
             z-index: 9999;
         }
 
-        .holographic {
-            background: linear-gradient(
-                135deg,
-                rgba(255,0,255,0.1) 0%,
-                rgba(0,255,255,0.1) 25%,
-                rgba(255,255,0,0.1) 50%,
-                rgba(255,0,255,0.1) 75%,
-                rgba(0,255,255,0.1) 100%
-            );
-            background-size: 400% 400%;
-            animation: holographicShift 8s ease infinite;
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            transition: all 0.3s;
         }
 
-        @keyframes holographicShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .connection-status.connected {
+            background: rgba(50, 205, 50, 0.9);
+            color: white;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 15px rgba(50, 205, 50, 0.4);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 107, 107, 0.9);
+            color: white;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .connection-status.connecting {
+            background: rgba(255, 193, 7, 0.9);
+            color: #333;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        .chat-message {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .scene-active {
+            border-color: #ff1493 !important;
+            box-shadow: 0 0 20px rgba(255, 20, 147, 0.5);
+            transform: scale(1.05);
+        }
+
+        input[type="text"], input[type="password"], input[type="range"] {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ffb6c1;
+            border-radius: 15px;
+            padding: 8px 15px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #ff69b4;
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #ff69b4, #da70d6);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.4);
+            transition: transform 0.3s ease-out;
+            z-index: 3000;
+            border: 2px solid white;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ff9ecd, #da70d6);
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff1493;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 10px rgba(255, 20, 147, 0.4);
+        }
+
+        /* Beauty Filter Canvas Styles */
+        #beautyCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #cameraPreview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+
+        .filter-control {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ffb6c1;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .filter-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #ffe4e1, #ff69b4);
+            outline: none;
+            margin: 10px 0;
+        }
+
+        .filter-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ff1493;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+        }
+
+        .filter-label {
+            font-family: 'VT323', monospace;
+            color: #ff69b4;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 105, 180, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ff69b4;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .face-mesh-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
     </style>
 </head>
-<body class="min-h-screen p-4 retro-grid">
+<body class="min-h-screen p-4">
     <div class="scanlines"></div>
     
-    <!-- Header -->
-    <header class="mb-6 y2k-window p-1 holographic">
-        <div class="title-bar rounded-t-lg">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🐰</span>
-                <span class="title-text">PLAYBOY.CLUB // STREAM_DASHBOARD.exe</span>
-            </div>
-            <div class="flex">
-                <div class="window-btn btn-min"></div>
-                <div class="window-btn btn-max"></div>
-                <div class="window-btn btn-close"></div>
-            </div>
-        </div>
-        <div class="p-4 flex justify-between items-center">
-            <div>
-                <h1 class="bubble-text text-4xl mb-1 glitch-text">STREAM CONTROL</h1>
-                <p class="retro-font text-pink-600 text-lg tracking-widest">/// WEBCAM_MODEL_DASHBOARD_V2.0</p>
-            </div>
-            <div class="text-right">
-                <div class="cute-font text-2xl text-pink-500" id="clock">00:00:00</div>
-                <div class="pixel-font text-xs text-purple-600 mt-1">LIVE STATUS: <span class="text-green-500 animate-pulse">● ONLINE</span></div>
-            </div>
-        </div>
-    </header>
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status disconnected">
+        <span class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            OBS: Disconnected
+        </span>
+    </div>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto">
+    <!-- Setup Modal -->
+    <div id="setupModal" class="modal active">
+        <div class="y2k-window p-6 max-w-md w-full mx-4">
+            <div class="title-bar -mx-6 -mt-6 mb-6">
+                <span class="title-text">INITIALIZATION_REQUIRED.exe</span>
+            </div>
+            <h2 class="bubble-text text-2xl mb-4 text-center">Connect Your Stream</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-pink-600 font-bold mb-2 retro-font">OBS WebSocket URL</label>
+                    <input type="text" id="obsUrl" value="ws://localhost:4455" class="w-full" placeholder="ws://localhost:4455">
+                </div>
+                
+                <div>
+                    <label class="block text-pink-600 font-bold mb-2 retro-font">OBS Password (optional)</label>
+                    <input type="password" id="obsPassword" class="w-full" placeholder="Leave blank if no password">
+                </div>
+
+                <div class="border-t-2 border-pink-200 pt-4">
+                    <label class="block text-purple-600 font-bold mb-2 retro-font">Twitch Channel</label>
+                    <input type="text" id="twitchChannel" class="w-full" placeholder="your_channel_name">
+                </div>
+
+                <div>
+                    <label class="block text-purple-600 font-bold mb-2 retro-font">Streamlabs Socket Token (optional)</label>
+                    <input type="password" id="streamlabsToken" class="w-full" placeholder="Find in Streamlabs Settings > API">
+                </div>
+
+                <button onclick="initializeConnections()" class="cute-button w-full py-4 mt-4 text-lg">
+                    ✨ CONNECT EVERYTHING ✨
+                </button>
+                
+                <p class="text-xs text-gray-500 text-center mt-2">
+                    Make sure OBS WebSocket is enabled in Tools > obs-websocket Settings
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainDashboard" style="opacity: 0.3; pointer-events: none; filter: blur(2px);">
+        <!-- Header -->
+        <header class="mb-6 y2k-window p-1">
+            <div class="title-bar rounded-t-lg">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🐰</span>
+                    <span class="title-text">PLAYBOY.CLUB // STREAM_DASHBOARD.exe</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleBeautyPanel()" class="text-white hover:scale-110 transition-transform" title="Beauty Filter">
+                        💄
+                    </button>
+                    <button onclick="openSettings()" class="text-white hover:scale-110 transition-transform" title="Settings">
+                        ⚙️
+                    </button>
+                    <div class="flex">
+                        <div class="window-btn btn-min"></div>
+                        <div class="window-btn btn-max"></div>
+                        <div class="window-btn btn-close" onclick="disconnectAll()"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <h1 class="bubble-text text-4xl mb-1 glitch-text">STREAM CONTROL</h1>
+                    <p class="retro-font text-pink-600 text-lg tracking-widest">/// BEAUTY_FILTER_ENABLED_V2.0</p>
+                </div>
+                <div class="text-right">
+                    <div class="cute-font text-2xl text-pink-500" id="clock">00:00:00</div>
+                    <div class="pixel-font text-xs text-purple-600 mt-1">
+                        STREAM: <span id="streamStatus" class="text-red-500">OFFLINE</span> | 
+                        REC: <span id="recordStatus" class="text-red-500">STOPPED</span> |
+                        FILTER: <span id="filterStatus" class="text-gray-400">OFF</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto">
+            
+            <!-- Left Column -->
+            <div class="lg:col-span-3 space-y-4">
+                <!-- Connection Info -->
+                <div class="y2k-window p-4 checkered-bg">
+                    <div class="glass-panel p-4">
+                        <h3 class="bubble-text text-lg mb-3">ACTIVE_CONNECTIONS</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center">
+                                <span class="retro-font text-gray-600">OBS WS</span>
+                                <span id="obsConnStatus" class="px-2 py-1 rounded-full bg-red-200 text-red-700 text-xs font-bold">DISCONNECTED</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="retro-font text-gray-600">Twitch Chat</span>
+                                <span id="twitchConnStatus" class="px-2 py-1 rounded-full bg-red-200 text-red-700 text-xs font-bold">DISCONNECTED</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="retro-font text-gray-600">Streamlabs</span>
+                                <span id="slConnStatus" class="px-2 py-1 rounded-full bg-gray-200 text-gray-600 text-xs font-bold">DISABLED</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="retro-font text-gray-600">Face Mesh</span>
+                                <span id="faceMeshStatus" class="px-2 py-1 rounded-full bg-gray-200 text-gray-600 text-xs font-bold">STANDBY</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beauty Filter Controls (Collapsible) -->
+                <div id="beautyPanel" class="y2k-window p-4 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="pixel-font text-sm text-pink-600 flex items-center gap-2">
+                            <span>💄</span> BEAUTY_FILTER.sys
+                        </h4>
+                        <button onclick="toggleFilter()" id="filterToggleBtn" class="cute-button px-4 py-2 text-xs">
+                            OFF
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Skin Smoothing</span>
+                                <span id="smoothValue">50%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="smoothSlider" min="0" max="100" value="50" oninput="updateFilterParam('smooth', this.value)">
+                        </div>
+
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Teeth Whitening</span>
+                                <span id="whitenValue">30%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="whitenSlider" min="0" max="100" value="30" oninput="updateFilterParam('whiten', this.value)">
+                        </div>
+
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Lip Color</span>
+                                <span id="lipValue">40%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="lipSlider" min="0" max="100" value="40" oninput="updateFilterParam('lip', this.value)">
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="setLipColor('#ff69b4')" class="w-6 h-6 rounded-full bg-pink-400 border-2 border-white shadow-sm hover:scale-110 transition-transform"></button>
+                                <button onclick="setLipColor('#ff1493')" class="w-6 h-6 rounded-full bg-pink-600 border-2 border-white shadow-sm hover:scale-110 transition-transform"></button>
+                                <button onclick="setLipColor('#da70d6')" class="w-6 h-6 rounded-full bg-purple-400 border-2 border-white shadow-sm hover:scale-110 transition-transform"></button>
+                                <button onclick="setLipColor('#ff6347')" class="w-6 h-6 rounded-full bg-red-400 border-2 border-white shadow-sm hover:scale-110 transition-transform"></button>
+                                <button onclick="setLipColor('#ffa07a')" class="w-6 h-6 rounded-full bg-orange-300 border-2 border-white shadow-sm hover:scale-110 transition-transform"></button>
+                            </div>
+                        </div>
+
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Blush</span>
+                                <span id="blushValue">25%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="blushSlider" min="0" max="100" value="25" oninput="updateFilterParam('blush', this.value)">
+                        </div>
+
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Eye Enhancement</span>
+                                <span id="eyeValue">35%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="eyeSlider" min="0" max="100" value="35" oninput="updateFilterParam('eye', this.value)">
+                        </div>
+
+                        <div class="filter-control">
+                            <div class="filter-label">
+                                <span>Face Slimming</span>
+                                <span id="slimValue">20%</span>
+                            </div>
+                            <input type="range" class="filter-slider" id="slimSlider" min="0" max="100" value="20" oninput="updateFilterParam('slim', this.value)">
+                        </div>
+
+                        <button onclick="resetFilterDefaults()" class="cute-button w-full py-2 text-xs bg-gradient-to-r from-gray-400 to-gray-500">
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Stats -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-3 border-b-2 border-pink-200 pb-2">LIVE_STATS.dat</h4>
+                    <div class="space-y-3">
+                        <div class="stat-card p-3 flex justify-between items-center">
+                            <span class="retro-font text-gray-600">Viewers</span>
+                            <span class="bubble-text text-2xl" id="viewerCount">0</span>
+                        </div>
+                        <div class="stat-card p-3 flex justify-between items-center">
+                            <span class="retro-font text-gray-600">Stream Time</span>
+                            <span class="bubble-text text-xl text-purple-600" id="streamTime">00:00:00</span>
+                        </div>
+                        <div class="stat-card p-3 flex justify-between items-center">
+                            <span class="retro-font text-gray-600">CPU Usage</span>
+                            <span class="bubble-text text-xl text-blue-500" id="cpuUsage">0%</span>
+                        </div>
+                        <div class="stat-card p-3 flex justify-between items-center">
+                            <span class="retro-font text-gray-600">Dropped Frames</span>
+                            <span class="bubble-text text-xl text-green-500" id="droppedFrames">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-3">STREAM_CONTROLS.exe</h4>
+                    <div class="space-y-2">
+                        <button onclick="toggleStream()" id="streamBtn" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2">
+                            <span>🔴</span> Start Stream
+                        </button>
+                        <button onclick="toggleRecording()" id="recordBtn" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-purple-400 to-pink-400">
+                            <span>⏺️</span> Start Recording
+                        </button>
+                        <button onclick="emergencyMode()" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-red-400 to-pink-400">
+                            <span>🚨</span> BRB Scene
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column -->
+            <div class="lg:col-span-6 space-y-4">
+                <!-- Camera Preview with Beauty Filter -->
+                <div class="y2k-window p-1">
+                    <div class="title-bar">
+                        <span class="title-text text-sm">CAMERA_PREVIEW.filter</span>
+                        <div class="flex gap-2">
+                            <button onclick="toggleCamera()" id="camToggleBtn" class="text-xs bg-white/20 px-2 py-1 rounded text-white hover:bg-white/30">📹 Start Camera</button>
+                            <button onclick="snapshot()" class="text-xs bg-white/20 px-2 py-1 rounded text-white hover:bg-white/30">📸 Snap</button>
+                        </div>
+                    </div>
+                    <div class="relative bg-black rounded-b-lg overflow-hidden" style="aspect-ratio: 16/9;" id="previewContainer">
+                        <video id="cameraVideo" class="hidden" autoplay playsinline muted></video>
+                        <canvas id="beautyCanvas"></canvas>
+                        <div id="cameraPlaceholder" class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-6xl mb-4 animate-bounce">💄</div>
+                                <p class="retro-font text-pink-300 text-xl">BEAUTY FILTER READY</p>
+                                <p class="text-pink-400/60 text-sm mt-2">Click "Start Camera" to begin</p>
+                                <div id="modelLoading" class="hidden mt-4 flex flex-col items-center">
+                                    <div class="loading-spinner mb-2"></div>
+                                    <p class="text-xs text-pink-300">Loading AI Models...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="faceMeshCanvas" class="face-mesh-overlay hidden"></canvas>
+                    </div>
+                </div>
+
+                <!-- Scene Switcher -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-4 flex items-center gap-2">
+                        <span>🎬</span> SCENE_MATRIX <span id="currentSceneName" class="text-xs bg-pink-200 px-2 py-1 rounded ml-auto">No Scene</span>
+                    </h4>
+                    <div class="grid grid-cols-4 gap-3" id="sceneGrid">
+                        <div class="text-center text-gray-400 py-8 retro-font">Connect to OBS to load scenes...</div>
+                    </div>
+                </div>
+
+                <!-- Audio Mixer -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-4">AUDIO_MIXER.sys</h4>
+                    <div id="audioMixer" class="space-y-4">
+                        <div class="text-center text-gray-400 py-4 retro-font">Connect to OBS to load audio sources...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="lg:col-span-3 space-y-4">
+                <!-- Recent Events -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-3">RECENT_EVENTS.stream</h4>
+                    <div id="recentEvents" class="space-y-2 max-h-48 overflow-y-auto">
+                        <div class="text-xs text-gray-400 text-center py-4 retro-font">Waiting for events...</div>
+                    </div>
+                </div>
+
+                <!-- Chat -->
+                <div class="y2k-window p-1 flex flex-col" style="height: 400px;">
+                    <div class="title-bar">
+                        <span class="title-text text-sm">TWITCH_CHAT.stream</span>
+                        <span id="chatViewerCount" class="text-xs bg-white/20 px-2 py-1 rounded text-white">0 viewers</span>
+                    </div>
+                    <div class="flex-1 bg-white/50 p-3 overflow-y-auto space-y-2 font-mono text-sm" id="chatBox">
+                        <div class="text-xs text-gray-400 text-center py-4">Connect to Twitch to view chat...</div>
+                    </div>
+                    <div class="p-2 bg-pink-50 border-t border-pink-200">
+                        <div class="flex gap-2">
+                            <input type="text" id="chatInput" placeholder="Send message..." class="flex-1 px-3 py-2 rounded-full border-2 border-pink-300 bg-white text-sm focus:outline-none focus:border-pink-500" onkeypress="handleChatKeypress(event)">
+                            <button onclick="sendChatMessage()" class="w-10 h-10 rounded-full bg-pink-400 text-white flex items-center justify-center hover:bg-pink-500 transition-colors">
+                                ➤
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stream Health -->
+                <div class="y2k-window p-4">
+                    <h4 class="pixel-font text-sm text-pink-600 mb-3">STREAM_HEALTH.monitor</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 retro-font">
+                                <span>Bitrate</span>
+                                <span id="bitrateValue">0 kbps</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="bitrateBar" class="h-full bg-gradient-to-r from-green-400 to-green-500 w-0 transition-all duration-500"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1 retro-font">
+                                <span>FPS</span>
+                                <span id="fpsValue">0 FPS</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="fpsBar" class="h-full bg-gradient-to-r from-blue-400 to-blue-500 w-0 transition-all duration-500"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Global State
+        let obs = null;
+        let twitchClient = null;
+        let streamlabsSocket = null;
+        let isStreamActive = false;
+        let isRecording = false;
+        let currentScene = '';
+        let streamStartTime = null;
+        let statsInterval = null;
+        let audioInterval = null;
+
+        // Beauty Filter State
+        let faceDetector = null;
+        let faceMeshModel = null;
+        let cameraActive = false;
+        let filterActive = false;
+        let videoElement = null;
+        let canvasElement = null;
+        let canvasCtx = null;
+        let animationId = null;
         
-        <!-- Left Column - Stats & Info -->
-        <div class="lg:col-span-3 space-y-4">
-            <!-- Profile Card -->
-            <div class="y2k-window p-4 checkered-bg">
-                <div class="glass-panel p-4 text-center">
-                    <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-pink-300 to-purple-400 p-1 mb-3 floating">
-                        <div class="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl border-4 border-pink-200">
-                            🎀
-                        </div>
-                    </div>
-                    <h3 class="bubble-text text-xl mb-1">Bunny_Name</h3>
-                    <p class="retro-font text-pink-600 text-sm">@playboy_handle</p>
-                    <div class="mt-3 flex justify-center gap-2">
-                        <span class="px-3 py-1 bg-pink-200 rounded-full text-xs font-bold text-pink-700 border border-pink-300">⭐ Top 5%</span>
-                        <span class="px-3 py-1 bg-purple-200 rounded-full text-xs font-bold text-purple-700 border border-purple-300">💎 VIP</span>
-                    </div>
-                </div>
-            </div>
+        // Filter Parameters (0-1 scale)
+        let filterParams = {
+            smooth: 0.5,
+            whiten: 0.3,
+            lip: 0.4,
+            lipColor: '#ff69b4',
+            blush: 0.25,
+            eye: 0.35,
+            slim: 0.2
+        };
 
-            <!-- Live Stats -->
-            <div class="y2k-window p-4">
-                <h4 class="pixel-font text-sm text-pink-600 mb-3 border-b-2 border-pink-200 pb-2">LIVE_STATS.dat</h4>
-                <div class="space-y-3">
-                    <div class="stat-card p-3 flex justify-between items-center">
-                        <span class="retro-font text-gray-600">Viewers</span>
-                        <span class="bubble-text text-2xl" id="viewerCount">1,247</span>
-                    </div>
-                    <div class="stat-card p-3 flex justify-between items-center">
-                        <span class="retro-font text-gray-600">Tokens</span>
-                        <span class="bubble-text text-2xl text-purple-600" id="tokenCount">∞</span>
-                    </div>
-                    <div class="stat-card p-3 flex justify-between items-center">
-                        <span class="retro-font text-gray-600">Uptime</span>
-                        <span class="bubble-text text-xl text-blue-500" id="uptime">02:34:12</span>
-                    </div>
-                </div>
-            </div>
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-            <!-- Quick Actions -->
-            <div class="y2k-window p-4">
-                <h4 class="pixel-font text-sm text-pink-600 mb-3">QUICK_ACTIONS.exe</h4>
-                <div class="space-y-2">
-                    <button onclick="triggerEffect('love')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2">
-                        <span>💕</span> Send Love
-                    </button>
-                    <button onclick="triggerEffect('dance')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-purple-400 to-pink-400">
-                        <span>💃</span> Dance Mode
-                    </button>
-                    <button onclick="triggerEffect('silence')" class="cute-button w-full py-3 text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-400">
-                        <span>🔇</span> Silence Trolls
-                    </button>
-                </div>
-            </div>
-        </div>
+        // Toast Notification
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
 
-        <!-- Center Column - Main Preview & Controls -->
-        <div class="lg:col-span-6 space-y-4">
-            <!-- Video Preview -->
-            <div class="y2k-window p-1">
-                <div class="title-bar">
-                    <span class="title-text text-sm">CAM_PREVIEW.window</span>
-                    <div class="flex gap-1">
-                        <span class="text-xs bg-red-500 text-white px-2 rounded animate-pulse">REC</span>
-                    </div>
-                </div>
-                <div class="relative bg-black rounded-b-lg overflow-hidden" style="aspect-ratio: 16/9;">
-                    <div class="absolute inset-0 bg-gradient-to-br from-pink-900/20 to-purple-900/20 z-10"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="text-center z-0">
-                            <div class="text-6xl mb-4 animate-bounce">📹</div>
-                            <p class="retro-font text-pink-300 text-xl">CAMERA_FEED_ACTIVE</p>
-                            <p class="text-pink-400/60 text-sm mt-2">Resolution: 1080p60 | Bitrate: 6000kbps</p>
-                        </div>
-                    </div>
-                    <!-- Overlay Elements -->
-                    <div class="absolute top-4 left-4 z-20 bg-black/50 backdrop-blur px-3 py-1 rounded-full border border-pink-500/50">
-                        <span class="text-pink-400 text-xs retro-font">ISO: AUTO | EXP: +0.3</span>
-                    </div>
-                    <div class="absolute bottom-4 right-4 z-20">
-                        <div class="bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 rounded-lg border-2 border-white shadow-lg transform rotate-2">
-                            <span class="text-white font-bold text-sm">LIVE</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        // Initialize Connections
+        async function initializeConnections() {
+            const obsUrl = document.getElementById('obsUrl').value;
+            const obsPassword = document.getElementById('obsPassword').value;
+            const twitchChannel = document.getElementById('twitchChannel').value;
+            const slToken = document.getElementById('streamlabsToken').value;
 
-            <!-- Scene Switcher -->
-            <div class="y2k-window p-4">
-                <h4 class="pixel-font text-sm text-pink-600 mb-4 flex items-center gap-2">
-                    <span>🎬</span> SCENE_SELECTOR.matrix
-                </h4>
-                <div class="grid grid-cols-4 gap-3">
-                    <button onclick="switchScene('intro')" class="scene-btn group relative aspect-video rounded-xl border-2 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 hover:border-pink-500 transition-all overflow-hidden">
+            showToast('Initializing connections...', 2000);
+
+            if (obsUrl) await connectOBS(obsUrl, obsPassword);
+            if (twitchChannel) connectTwitch(twitchChannel);
+            if (slToken) connectStreamlabs(slToken);
+
+            document.getElementById('setupModal').classList.remove('active');
+            document.getElementById('mainDashboard').style.opacity = '1';
+            document.getElementById('mainDashboard').style.pointerEvents = 'all';
+            document.getElementById('mainDashboard').style.filter = 'none';
+        }
+
+        // OBS WebSocket (same as before)
+        async function connectOBS(url, password) {
+            try {
+                obs = new OBSWebSocket();
+                
+                obs.on('ConnectionOpened', () => updateOBSStatus('connecting'));
+                obs.on('Identified', () => {
+                    updateOBSStatus('connected');
+                    showToast('✨ Connected to OBS!');
+                    loadScenes();
+                    loadAudioSources();
+                    startStatsMonitoring();
+                    startAudioMonitoring();
+                });
+                obs.on('ConnectionClosed', () => updateOBSStatus('disconnected'));
+                obs.on('ConnectionError', () => updateOBSStatus('error'));
+
+                obs.on('CurrentProgramSceneChanged', (data) => updateCurrentScene(data.sceneName));
+                obs.on('StreamStateChanged', (data) => {
+                    isStreamActive = data.outputActive;
+                    updateStreamStatus(data.outputActive);
+                });
+                obs.on('RecordStateChanged', (data) => {
+                    isRecording = data.outputActive;
+                    updateRecordStatus(data.outputActive);
+                });
+
+                await obs.connect(url, password);
+            } catch (error) {
+                showToast('Failed to connect to OBS: ' + error.message);
+                updateOBSStatus('error');
+            }
+        }
+
+        function updateOBSStatus(status) {
+            const statusEl = document.getElementById('obsConnStatus');
+            const connEl = document.getElementById('connectionStatus');
+            
+            const states = {
+                connected: { text: 'CONNECTED', class: 'bg-green-200 text-green-700', connText: 'OBS: Connected', connClass: 'connected' },
+                connecting: { text: 'CONNECTING', class: 'bg-yellow-200 text-yellow-700', connText: 'OBS: Connecting...', connClass: 'connecting' },
+                disconnected: { text: 'DISCONNECTED', class: 'bg-red-200 text-red-700', connText: 'OBS: Disconnected', connClass: 'disconnected' },
+                error: { text: 'ERROR', class: 'bg-red-300 text-red-800', connText: 'OBS: Error', connClass: 'disconnected' }
+            };
+
+            const state = states[status];
+            statusEl.textContent = state.text;
+            statusEl.className = `px-2 py-1 rounded-full text-xs font-bold ${state.class}`;
+            connEl.textContent = state.connText;
+            connEl.className = `connection-status ${state.connClass}`;
+        }
+
+        // Scene management (same as before)
+        async function loadScenes() {
+            try {
+                const { scenes, currentProgramSceneName } = await obs.call('GetSceneList');
+                const grid = document.getElementById('sceneGrid');
+                grid.innerHTML = '';
+                
+                scenes.forEach(scene => {
+                    const btn = document.createElement('button');
+                    btn.className = `scene-btn group relative aspect-video rounded-xl border-2 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 hover:border-pink-500 transition-all overflow-hidden ${scene.sceneName === currentProgramSceneName ? 'scene-active' : ''}`;
+                    btn.onclick = () => switchScene(scene.sceneName);
+                    
+                    btn.innerHTML = `
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">✨</span>
-                            <span class="text-xs font-bold text-pink-700">INTRO</span>
+                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">🎬</span>
+                            <span class="text-xs font-bold text-pink-700 text-center px-1 truncate w-full">${scene.sceneName}</span>
                         </div>
-                        <div class="absolute inset-0 bg-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </button>
-                    <button onclick="switchScene('dance')" class="scene-btn group relative aspect-video rounded-xl border-2 border-purple-300 bg-gradient-to-br from-purple-100 to-purple-200 hover:border-purple-500 transition-all overflow-hidden">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">💃</span>
-                            <span class="text-xs font-bold text-purple-700">DANCE</span>
-                        </div>
-                        <div class="absolute inset-0 bg-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </button>
-                    <button onclick="switchScene('close')" class="scene-btn group relative aspect-video rounded-xl border-2 border-blue-300 bg-gradient-to-br from-blue-100 to-blue-200 hover:border-blue-500 transition-all overflow-hidden">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">💋</span>
-                            <span class="text-xs font-bold text-blue-700">CLOSE UP</span>
-                        </div>
-                        <div class="absolute inset-0 bg-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </button>
-                    <button onclick="switchScene('break')" class="scene-btn group relative aspect-video rounded-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-100 to-yellow-200 hover:border-yellow-500 transition-all overflow-hidden">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">☕</span>
-                            <span class="text-xs font-bold text-yellow-700">BREAK</span>
-                        </div>
-                        <div class="absolute inset-0 bg-yellow-400/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </button>
-                </div>
-            </div>
+                    `;
+                    grid.appendChild(btn);
+                });
+                updateCurrentScene(currentProgramSceneName);
+            } catch (error) {
+                console.error('Failed to load scenes:', error);
+            }
+        }
 
-            <!-- Audio Mixer -->
-            <div class="y2k-window p-4">
-                <h4 class="pixel-font text-sm text-pink-600 mb-4">AUDIO_MIXER.sys</h4>
-                <div class="space-y-4">
-                    <div class="flex items-c
+        async function switchScene(sceneName) {
+            try {
+                await obs.call('SetCurrentProgramScene', { sceneName });
+                showToast(`Switched to: ${sceneName}`);
+            } catch (error) {
+                showToast('Failed to switch scene');
+            }
+        }
+
+        function updateCurrentScene(sceneName) {
+            currentScene = sceneName;
+            document.getElementById('currentSceneName').textContent = sceneName || 'No Scene';
+            document.querySelectorAll('.scene-btn').forEach(btn => {
+                const btnScene = btn.querySelector('span:last-child').textContent;
+                btn.classList.toggle('scene-active', btnScene === sceneName);
+            });
+        }
+
+        // Audio management (same as before)
+        async function loadAudioSources() {
+            try {
+                const { inputs } = await obs.call('GetInputList', { inputKind: 'wasapi_input_capture' });
+                const specialInputs = await obs.call('GetSpecialInputs');
+                const mixer = document.getElementById('audioMixer');
+                mixer.innerHTML = '';
+                
+                const allInputs = [...(inputs || []), 
+                    { inputName: specialInputs.desktop1 || 'Desktop Audio', kind: 'special' },
+                    { inputName: specialInputs.mic1 || 'Mic/Aux', kind: 'special' }
+                ].filter(input => input.inputName);
+                
+                const uniqueInputs = allInputs.filter((v, i, a) => a.findIndex(t => t.inputName === v.inputName) === i);
+                
+                uniqueInputs.forEach(input => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-4';
+                    div.innerHTML = `
+                        <span class="w-24 text-xs font-bold text-gray-600 retro-font truncate">${input.inputName}</span>
+                        <div class="flex-1 h-8 bg-gray-200 rounded-full overflow-hidden border-2 border-pink-200 relative">
+                            <div id="vol-${input.inputName.replace(/\s+/g, '-')}" class="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 w-0 transition-all duration-100"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xs text-gray-600 font-bold mix-blend-multiply" id="db-${input.inputName.replace(/\s+/g, '-')}">-inf dB</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleMute('${input.inputName}')" id="mute-${input.inputName.replace(/\s+/g, '-')}" class="w-10 h-10 rounded-full bg-pink-400 text-white flex items-center justify-center hover:bg-pink-500 transition-colors text-xs">
+                            🔊
+                        </button>
+                    `;
+                    mixer.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Failed to load audio:', error);
+            }
+        }
+
+        async function toggleMute(inputName) {
+            try {
+                const { inputMuted } = await obs.call('ToggleInputMute', { inputName });
+                const btn = document.getElementById(`mute-${inputName.replace(/\s+/g, '-')}`);
+                btn.textContent = inputMuted ? '🔇' : '🔊';
+                btn.classList.toggle('bg-gray-400', inputMuted);
+                btn.classList.toggle('bg-pink-400', !inputMuted);
+            } catch (error) {
+                showToast('Failed to toggle mute');
+            }
+        }
+
+        function updateAudioMeter(inputName, volumeDb) {
+            const meter = document.getElementById(`vol-${inputName.replace(/\s+/g, '-')}`);
+            const dbLabel = document.getElementById(`db-${inputName.replace(/\s+/g, '-')}`);
+            if (meter && dbLabel) {
+                const percent = Math.max(0, Math.min(100, (volumeDb + 60) / 60 * 100));
+                meter.style.width = percent + '%';
+                dbLabel.textContent = volumeDb > -100 ? `${Math.round(volumeDb)} dB` : '-inf dB';
+            }
+        }
+
+        async function startAudioMonitoring() {
+            audioInterval = setInterval(async () => {
+                try {
+                    const inputs = document.querySelectorAll('[id^="vol-"]');
+                    for (const meter of inputs) {
+                        const inputName = meter.id.replace('vol-', '').replace(/-/g, ' ');
+                        try {
+                            const { inputVolumeDb } = await obs.call('GetInputVolume', { inputName });
+                            updateAudioMeter(inputName, inputVolumeDb);
+                        } catch (e) {}
+                    }
+                } catch (error) {}
+            }, 100);
+        }
+
+        // Stream controls (same as before)
+        async function toggleStream() {
+            try {
+                if (isStreamActive) {
+                    await obs.call('StopStream');
+                    showToast('Stream stopping...');
+                } else {
+                    await obs.call('StartStream');
+                    showToast('Stream starting...');
+                    streamStartTime = Date.now();
+                }
+            } catch (error) {
+                showToast('Stream action failed: ' + error.message);
+            }
+        }
+
+        async function toggleRecording() {
+            try {
+                if (isRecording) {
+                    await obs.call('StopRecord');
+                    showToast('Recording stopped');
+                } else {
+                    await obs.call('StartRecord');
+                    showToast('Recording started');
+                }
+            } catch (error) {
+                showToast('Recording action failed: ' + error.message);
+            }
+        }
+
+        async function emergencyMode() {
+            try {
+                await obs.call('SetCurrentProgramScene', { sceneName: 'BRB' });
+                showToast('🚨 Emergency BRB scene activated!');
+            } catch (error) {
+                const { scenes } = await obs.call('GetSceneList');
+                const brbScene = scenes.find(s => s.sceneName.toLowerCase().includes('brb') || s.sceneName.toLowerCase().includes('break'));
+                if (brbScene) {
+                    await obs.call('SetCurrentProgramScene', { sceneName: brbScene.sceneName });
+                    showToast(`🚨 Switched to ${brbScene.sceneName}!`);
+                } else {
+                    showToast('No BRB scene found!');
+                }
+            }
+        }
+
+        function updateStreamStatus(active) {
+            const statusEl = document.getElementById('streamStatus');
+            const btn = document.getElementById('streamBtn');
+            if (active) {
+                statusEl.textContent = 'LIVE';
+                statusEl.className = 'text-green-500 animate-pulse';
+                btn.innerHTML = '<span>⏹️</span> Stop Stream';
+                btn.classList.add('connected');
+                if (!streamStartTime) streamStartTime = Date.now();
+            } else {
+                statusEl.textContent = 'OFFLINE';
+                statusEl.className = 'text-red-500';
+                btn.innerHTML = '<span>🔴</span> Start Stream';
+                btn.classList.remove('connected');
+                streamStartTime = null;
+            }
+        }
+
+        function updateRecordStatus(active) {
+            const statusEl = document.getElementById('recordStatus');
+            const btn = document.getElementById('recordBtn');
+            if (active) {
+                statusEl.textContent = 'RECORDING';
+                statusEl.className = 'text-red-500 animate-pulse';
+                btn.innerHTML = '<span>⏹️</span> Stop Recording';
+            } else {
+                statusEl.textContent = 'STOPPED';
+                statusEl.className = 'text-red-500';
+                btn.innerHTML = '<span>⏺️</span> Start Recording';
+            }
+        }
+
+        // Stats monitoring (same as before)
+        async function startStatsMonitoring() {
+            statsInterval = setInterval(async () => {
+                try {
+                    const streamStatus = await obs.call('GetStreamStatus');
+                    if (streamStartTime && isStreamActive) {
+                        const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+                        const hrs = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                        const mins = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                        const secs = (elapsed % 60).toString().padStart(2, '0');
+                        document.getElementById('streamTime').textContent = `${hrs}:${mins}:${secs}`;
+                    }
+                    
+                    const stats = await obs.call('GetStats');
+                    document.getElementById('cpuUsage').textContent = Math.round(stats.cpuUsage) + '%';
+                    document.getElementById('droppedFrames').textContent = stats.outputSkippedFrames;
+                    
+                    if (streamStatus.outputBitrate) {
+                        const bitrate = Math.round(streamStatus.outputBitrate / 1000);
+                        document.getElementById('bitrateValue').textContent = bitrate + ' kbps';
+                        document.getElementById('bitrateBar').style.width = Math.min(100, (bitrate / 6000) * 100) + '%';
+                    }
+                    
+                    if (streamStatus.outputFPS) {
+                        const fps = Math.round(streamStatus.outputFPS);
+                        document.getElementById('fpsValue').textContent = fps + ' FPS';
+                        document.getElementById('fpsBar').style.width = Math.min(100, (fps / 60) * 100) + '%';
+                    }
+                } catch (error) {
+                    console.error('Stats error:', error);
+                }
+            }, 1000);
+        }
+
+        // ==========================================
+        // BEAUTY FILTER IMPLEMENTATION
+        // ==========================================
+
+        function toggleBeautyPanel() {
+            const panel = document.getElementById('beautyPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        async function toggleCamera() {
+            if (cameraActive) {
+                stopCamera();
+            } else {
+                await startCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                videoElement = document.getElementById('cameraVideo');
+                canvasElement = document.getElementById('beautyCanvas');
+                canvasCtx = canvasElement.getContext('2d');
+                
+                document.getElementById('modelLoading').classList.remove('hidden');
+                
+                // Load face detection models
+                await loadFaceModels();
+                
+                // Get camera stream
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+                
+                videoElement.srcObject = stream;
+                
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    canvasElement.width = videoElement.videoWidth;
+                    canvasElement.height = videoElement.videoHeight;
+                    
+                    cameraActive = true;
+                    document.getElementById('cameraPlaceholder').classList.add('hidden');
+                    document.getElementById('camToggleBtn').textContent = '🛑 Stop Camera';
+                    document.getElementById('modelLoading').classList.add('hidden');
+                    document.getElementById('faceMeshStatus').textContent = 'ACTIVE';
+                    document.getElementById('faceMeshStatus').className = 'px-2 py-1 rounded-full bg-green-200 text-green-700 text-xs font-bold';
+                    
+                    showToast('📹 Camera started! Click "OFF" to enable beauty filter');
+                    
+                    // Start render loop
+                    renderFrame();
+                };
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                showToast('Failed to start camera: ' + error.message);
+                document.getElementById('modelLoading').classList.add('hidden');
+            }
+        }
+
+        function stopCamera() {
+            if (videoElement && videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+            }
+            cameraActive = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            
+            document.getElementById('cameraPlaceholder').classList.remove('hidden');
+            document.getElementById('camToggleBtn').textContent = '📹 Start Camera';
+            document.getElementById('faceMeshStatus').textContent = 'STANDBY';
+            document.getElementById('faceMeshStatus').className = 'px-2 py-1 rounded-full bg-gray-200 text-gray-600 text-xs font-bold';
+            
+            // Clear canvas
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        }
+
+        async function loadFaceModels() {
+            try {
+                // Load face detection model
+                const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
+                const detectorConfig = {
+                    runtime: 'tfjs',
+                    modelType: 'full'
+                };
+                faceDetector = await faceDetection.createDetector(model, detectorConfig);
+                
+                // Load face landmarks for mesh
+                const meshModel = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+                const meshConfig = {
+                    runtime: 'tfjs',
+                    refineLandmarks: true,
+                    maxFaces: 1
+                };
+                faceMeshModel = await faceLandmarksDetection.createDetector(meshModel, meshConfig);
+                
+            } catch (error) {
+                console.error('Model loading error:', error);
+                showToast('AI models failed to load, using basic filter');
+            }
+        }
+
+        async function renderFrame() {
+            if (!cameraActive) return;
+            
+            // Draw video frame
+            canvasCtx.save();
+            canvasCtx.scale(-1, 1); // Mirror
+            canvasCtx.translate(-canvasElement.width, 0);
+            canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.restore();
+            
+            if (filterActive && faceDetector) {
+                try {
+                    const faces = await faceDetector.estimateFaces(canvasElement);
+                    
+                    if (faces.length > 0) {
+                        const face = faces[0];
+                        applyBeautyFilter(face);
+                    }
+                } catch (error) {
+                    // Silent fail for performance
+                }
+            }
+            
+            animationId = requestAnimationFrame(renderFrame);
+        }
+
+        function applyBeautyFilter(face) {
+            const box = face.box;
+            const x = box.xMin;
+            const y = box.yMin;
+            const w = box.width;
+            const h = box.height;
+            
+            // Create temporary canvas for processing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Extract face region
+            tempCtx.drawImage(canvasElement, x, y, w, h, 0, 0, w, h);
+            
+            // Apply skin smoothing
+            if (filterParams.smooth > 0) {
+                applySkinSmoothing(tempCtx, w, h, filterParams.smooth);
+            }
+            
+            // Apply teeth whitening
+            if (filterParams.whiten > 0) {
+                applyTeethWhitening(tempCtx, w, h, filterParams.whiten);
+            }
+            
+            // Apply lip color
+            if (filterParams.lip > 0) {
+                applyLipColor(tempCtx, w, h, filterParams.lip, filterParams.lipColor);
+            }
+            
+            // Apply blush
+            if (filterParams.blush > 0) {
+                applyBlush(tempCtx, w, h, filterParams.blush);
+            }
+            
+            // Apply eye enhancement
+            if (filterParams.eye > 0) {
+                applyEyeEnhancement(tempCtx, w, h, filterParams.eye);
+            }
+            
+            // Draw processed face back
+            canvasCtx.drawImage(tempCanvas, x, y);
+        }
+
+        function applySkinSmoothing(ctx, width, height, intensity) {
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            const blurAmount = Math.floor(intensity * 5) + 1;
+            
+            // Simple box blur for smoothing (optimized)
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Preserve edges while smoothing
+                const luminance = (r + g + b) / 3;
+                const threshold = 30; // Edge detection threshold
+                
+                if (luminance > threshold) {
+                    // Apply slight blur effect
+                    const smoothFactor = intensity * 0.3;
+                    data[i] = r + (128 - r) * smoothFactor * 0.1;     // R
+                    data[i + 1] = g + (128 - g) * smoothFactor * 0.1; // G
+                    data[i + 2] = b + (128 - b) * smoothFactor * 0.1; // B
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function applyTeethWhitening(ctx, width, height, intensity) {
+            // Detect teeth region (lower middle of face)
+            const imageData = ctx.getImageData(width * 0.3, height * 0.6, width * 0.4, height * 0.2);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Detect white/yellow teeth
+                const isTooth = r > 100 && g > 100 && b > 80 && r < 240 && g < 240 && b < 240;
+                const isYellow = r > g && r > b && (r - b) > 20;
+                
+                if (isTooth && isYellow) {
+                    const whiteness = intensity * 30;
+                    data[i] = Math.min(255, r + whiteness);     // R
+                    data[i + 1] = Math.min(255, g + whiteness); // G
+                    data[i + 2] = Math.min(255, b + whiteness); // B
+                }
+            }
+            
+            ctx.putImageData(imageData, width * 0.3, height * 0.6);
+        }
+
+        function applyLipColor(ctx, width, height, intensity, color) {
+            // Lip region detection (lower face)
+            const lipY = height * 0.65;
+            const lipHeight = height * 0.15;
+            const lipX = width * 0.35;
+            const lipWidth = width * 0.3;
+            
+            const imageData = ctx.getImageData(lipX, lipY, lipWidth, lipHeight);
+            const data = imageData.data;
+            
+            // Parse hex color
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const pr = data[i];
+                const pg = data[i + 1];
+                const pb = data[i + 2];
+                
+                // Detect lip color (reds/pinks)
+                const isLip = (pr > 80 && pg < pr * 0.8 && pb < pr * 0.8) || 
+                             (pr > 100 && pg > 50 && pg < pr && pb < pg);
+                
+                if (isLip) {
+                    const blend = intensity * 0.6;
+                    data[i] = pr * (1 - blend) + r * blend;       // R
+                    data[i + 1] = pg * (1 - blend) + g * blend;   // G
+                    data[i + 2] = pb * (1 - blend) + b * blend;   // B
+                }
+            }
+            
+            ctx.putImageData(imageData, lipX, lipY);
+        }
+
+        function applyBlush(ctx, width, height, intensity) {
+            // Cheek regions
+            const cheeks = [
+                { x: width * 0.15, y: height * 0.45, r: width * 0.12 }, // Left
+                { x: width * 0.85, y: height * 0.45, r: width * 0.12 }  // Right
+            ];
+            
+            cheeks.forEach(cheek => {
+                const gradient = ctx.createRadialGradient(cheek.x, cheek.y, 0, cheek.x, cheek.y, cheek.r);
+                gradient.addColorStop(0, `rgba(255, 105, 180, ${intensity * 0.4})`);
+                gradient.addColorStop(1, 'rgba(255, 105, 180, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(cheek.x, cheek.y, cheek.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function applyEyeEnhancement(ctx, width, height, intensity) {
+            // Eye regions (upper face)
+            const eyeY = height * 0.3;
+            const eyeHeight = height * 0.15;
+            const leftEyeX = width * 0.25;
+            const rightEyeX = width * 0.55;
+            const eyeWidth = width * 0.2;
+            
+            [leftEyeX, rightEyeX].forEach(eyeX => {
+                const imageData = ctx.getImageData(eyeX, eyeY, eyeWidth, eyeHeight);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Brighten eyes
+                    const brightness = intensity * 20;
+                    data[i] = Math.min(255, r + brightness);
+                    data[i + 1] = Math.min(255, g + brightness);
+                    data[i + 2] = Math.min(255, b + brightness);
+                    
+                    // Increase contrast for definition
+                    const contrast = intensity * 0.2;
+                    data[i] = data[i] + (data[i] - 128) * contrast;
+                    data[i + 1] = data[i + 1] + (data[i + 1] - 128) * contrast;
+                    data[i + 2] = data[i + 2] + (data[i + 2] - 128) * contrast;
+                }
+                
+                ctx.putImageData(imageData, eyeX, eyeY);
+            });
+        }
+
+        function toggleFilter() {
+            filterActive = !filterActive;
+            const btn = document.getElementById('filterToggleBtn');
+            const statusEl = document.getElementById('filterStatus');
+            
+            if (filterActive) {
+                btn.textContent = 'ON';
+                btn.classList.add('active');
+                statusEl.textContent = 'ACTIVE';
+                statusEl.className = 'text-green-500 animate-pulse';
+                showToast('💄 Beauty filter activated!');
+            } else {
+                btn.textContent = 'OFF';
+                btn.classList.remove('active');
+                statusEl.textContent = 'OFF';
+                statusEl.className = 'text-gray-400';
+                showToast('Beauty filter disabled');
+            }
+        }
+
+        function updateFilterParam(param, value) {
+            filterParams[param] = value / 100;
+            document.getElementById(param + 'Value').textContent = value + '%';
+        }
+
+        function setLipColor(color) {
+            filterParams.lipColor = color;
+            showToast('Lip color updated!');
+        }
+
+        function resetFilterDefaults() {
+            document.getElementById('smoothSlider').value = 50;
+            document.getElementById('whitenSlider').value = 30;
+            document.getElementById('lipSlider').value = 40;
+            document.getElementById('blushSlider').value = 25;
+            document.getElementById('eyeSlider').value = 35;
+            document.getElementById('slimSlider').value = 20;
+            
+            filterParams = {
+                smooth: 0.5,
+                whiten: 0.3,
+                lip: 0.4,
+                lipColor: '#ff69b4',
+                blush: 0.25,
+                eye: 0.35,
+                slim: 0.2
+            };
+            
+            // Update display values
+            ['smooth', 'whiten', 'lip', 'blush', 'eye', 'slim'].forEach(param => {
+                document.getElementById(param + 'Value').textContent = Math.round(filterParams[param] * 100) + '%';
+            });
+            
+            showToast('Filter settings reset!');
+        }
+
+        function snapshot() {
+            if (!cameraActive) {
+                showToast('Start camera first!');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = 'beauty-snapshot-' + Date.now() + '.png';
+            link.href = canvasElement.toDataURL();
+            link.click();
+            showToast('📸 Snapshot saved!');
+        }
+
+        // Twitch Chat (same as before)
+        function connectTwitch(channel) {
+            try {
+                twitchClient = new tmi.Client({ channels: [channel] });
+
+                twitchClient.on('connected', () => {
+                    document.getElementById('twitchConnStatus').textContent = 'CONNECTED';
+                    document.getElementById('twitchConnStatus').className = 'px-2 py-1 rounded-full bg-green-200 text-green-700 text-xs font-bold';
+                    showToast('💬 Connected to Twitch chat!');
+                });
+
+                twitchClient.on('message', (channel, tags, message, self) => {
+                    if (self) return;
+                    const chatBox = document.getElementById('chatBox');
+                    if (chatBox.children.length === 1 && chatBox.children[0].classList.contains('text-center')) {
+                        chatBox.innerHTML = '';
+                    }
+                    
+                    const div = document.createElement('div');
+                    div.className = 'chat-message flex gap-2';
+                    const isMod = tags.mod || tags.badges?.broadcaster;
+                    const isSub = tags.subscriber;
+                    const isVip = tags.badges?.vip;
+                    
+                    let badge = '';
+                    if (isMod) badge = '<span class="text-green-500">⚔️</span>';
+                    else if (isVip) badge = '<span class="text-purple-500">💎</span>';
+                    else if (isSub) badge = '<span class="text-pink-500">⭐</span>';
+                    
+                    const color = tags.color || '#ff69b4';
+                    
+                    div.innerHTML = `
+                        ${badge}
+                        <span style="color: ${color}" class="font-bold text-xs">${tags['display-name']}:</span>
+                        <span class="text-gray-700 text-xs break-words">${message}</span>
+                    `;
+                    
+                    chatBox.appendChild(div);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    
+                    while (chatBox.children.length > 50) {
+                        chatBox.removeChild(chatBox.firstChild);
+                    }
+                });
+
+                twitchClient.connect();
+            } catch (error) {
+                showToast('Failed to connect to Twitch');
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (message && twitchClient) {
+                const channel = document.getElementById('twitchChannel').value;
+                twitchClient.say(channel, message);
+                input.value = '';
+            }
+        }
+
+        function handleChatKeypress(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        // Settings
+        function openSettings() {
+            document.getElementById('setupModal').classList.add('active');
+        }
+
+        function disconnectAll() {
+            stopCamera();
+            if (obs) obs.disconnect();
+            if (twitchClient) twitchClient.disconnect();
+            if (statsInterval) clearInterval(statsInterval);
+            if (audioInterval) clearInterval(audioInterval);
+            location.reload();
+        }
+    </script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</body>
+</html>
