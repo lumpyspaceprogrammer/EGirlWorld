@@ -515,6 +515,10 @@
                     ✨ CONNECT EVERYTHING ✨
                 </button>
                 
+                <button onclick="skipSetup()" class="w-full py-3 mt-2 text-sm text-gray-600 hover:text-pink-600 transition-colors border-2 border-gray-300 hover:border-pink-400 rounded-full">
+                    Skip Setup (Use Dashboard Offline)
+                </button>
+                
                 <p class="text-xs text-gray-500 text-center mt-2">
                     Make sure OBS WebSocket is enabled in Tools > obs-websocket Settings
                 </p>
@@ -878,6 +882,15 @@
             document.getElementById('mainDashboard').style.opacity = '1';
             document.getElementById('mainDashboard').style.pointerEvents = 'all';
             document.getElementById('mainDashboard').style.filter = 'none';
+        }
+
+        // Skip Setup - Allow access to dashboard without connections
+        function skipSetup() {
+            document.getElementById('setupModal').classList.remove('active');
+            document.getElementById('mainDashboard').style.opacity = '1';
+            document.getElementById('mainDashboard').style.pointerEvents = 'all';
+            document.getElementById('mainDashboard').style.filter = 'none';
+            showToast('Dashboard loaded in offline mode. Connect services from Settings ⚙️', 3000);
         }
 
         // OBS WebSocket (same as before)
